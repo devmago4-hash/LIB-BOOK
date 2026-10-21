@@ -58,7 +58,7 @@ body{display:grid;place-items:center;padding-bottom:70px}
 
 <article class="face endp nopg"><h2>Como usar este livro</h2><p>Vire as páginas arrastando com o dedo. No computador, clique nas bordas ou use as setas do teclado.</p><p>Cada capítulo traz explicação e questões resolvidas. Tente resolver sozinho antes de ler a resolução.</p><p>Este livro é gratuito e fica aqui para quem precisar, inclusive nos próximos anos.</p></article>
 
-<article class="face"><h2>Sumário</h2><ul>
+<article class="face sum"><h2>Sumário</h2><ul>
 <li><a href="#p3" data-go="3">Como é o Enem</a>, p. 3</li>
 <li><a href="#p4" data-go="4">Como funciona a nota</a>, p. 4</li>
 <li><a href="#p5" data-go="5">Redação: as 5 competências</a>, p. 5</li>
@@ -98,7 +98,7 @@ body{display:grid;place-items:center;padding-bottom:70px}
 <li>Matemática: mais questões resolvidas</li>
 <li>Redações nota 1000 comentadas</li></ul></article>
 
-<article class="face"><h2>Anotações</h2><div class="lines"></div></article>
+<article class="face notoc"><h2>Anotações</h2><div class="lines"></div></article>
 
 <article class="face cover nopg"><div class="foil"><h1>LIB-BOOK</h1><p>Gratuito. Para todos.</p></div></article>
 </main>
@@ -110,7 +110,17 @@ body{display:grid;place-items:center;padding-bottom:70px}
 
 <script>
 (()=>{
-const S=[...document.querySelectorAll('#src .face')],M=S.length;
+const all=[...document.querySelectorAll('#src .face')];
+const mk=(h,c)=>{const a=document.createElement('article');a.className=c||'face';a.innerHTML=h;return a};
+const mid=all.slice(2,-1).filter(n=>!n.classList.contains('sum'));
+const items=mid.filter(n=>!n.classList.contains('notoc')&&n.querySelector('h2'));
+const T=Math.max(1,Math.ceil(items.length/12)),base=2+T;
+const rows=items.map(n=>{const k=base+mid.indexOf(n);return '<li><a href="#p'+k+'" data-go="'+k+'">'+n.querySelector('h2').textContent+'</a>, p. '+k+'</li>'});
+const tocs=[];for(let k=0;k<T;k++)tocs.push(mk('<h2>Sumário</h2><ul>'+rows.slice(k*12,k*12+12).join('')+'</ul>'));
+const pages=[all[0],all[1],...tocs,...mid];
+if(pages.length%2===0)pages.push(mk('','face blank nopg'));
+pages.push(all[all.length-1]);
+const S=pages,M=S.length;
 const book=document.getElementById('book'),ind=document.getElementById('ind'),bp=document.getElementById('prev'),bn=document.getElementById('next');
 const root=document.documentElement.style;
 let two=true,L=[],N=0,cur=0,W=340,drag=null;
