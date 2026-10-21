@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laboratório de Redação — LIB-BOOK</title>
+<style>
+:root{--bg:#07110e;--panel:#101e18;--gold:#e4bd69;--text:#f2f0e8;--muted:#aab8ad;--red:#ff3030}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,sans-serif}
+header,main{width:min(900px,92%);margin:auto}
+header{padding:28px 0 12px}
+a{color:var(--gold)}
+h1,h2{line-height:1.2}
+h1{color:var(--gold)}
+.panel{background:var(--panel);border:1px solid #2a4033;border-radius:16px;padding:20px;margin:18px 0}
+.timer{font-size:clamp(2.5rem,9vw,4rem);font-weight:800;text-align:center;font-variant-numeric:tabular-nums;color:var(--gold)}
+button{background:var(--gold);color:#17150d;border:0;border-radius:10px;padding:12px 18px;font-weight:800;font-size:1rem;cursor:pointer;margin:5px}
+button:disabled{opacity:.4;cursor:not-allowed}
+.secondary{background:#26382e;color:var(--text)}
+#essay{display:block;width:100%;min-height:360px;resize:vertical;background:#f7f3e9;color:#1c241e;border:2px solid #d6c8a6;border-radius:10px;padding:16px;font:17px/1.7 Georgia,serif}
+#essay:disabled{opacity:.85}
+#status{color:var(--muted)}
+#count{color:var(--muted);text-align:right}
+.expired #essay{background:#ffdddd!important;color:#b00000!important;border:3px solid red!important;animation:shake .35s linear 3}
+.expired .timer{color:var(--red)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+<a href="index.html">← Voltar ao livro</a>
+<h1>Laboratório de Redação</h1>
+<p>Treino cronometrado para praticar a redação dissertativo-argumentativa do ENEM.</p>
+</header>
+<main>
+<section class="panel">
+<h2>Tema de redação</h2>
+<p><strong>Desafios para garantir o acesso responsável à informação no Brasil contemporâneo.</strong></p>
+<p>Escreva um texto dissertativo-argumentativo em língua portuguesa, apresentando uma tese, argumentos consistentes e uma proposta de intervenção que respeite os direitos humanos.</p>
+</section>
+
+<section class="panel">
+<h2>Tempo disponível</h2>
+<div id="timer" class="timer" role="timer" aria-live="off">25:00</div>
+<p id="status" aria-live="polite">O cronômetro começa quando você iniciar. Ao terminar o tempo, o texto será bloqueado.</p>
+<button id="start">Iniciar redação</button>
+<button id="restart" class="secondary">Recomeçar do zero</button>
+</section>
+
+<section class="panel">
+<h2>Seu texto</h2>
+<textarea id="essay" placeholder="Clique em “Iniciar redação” para começar..." disabled spellcheck="true" aria-label="Texto da redação"></textarea>
+<div id="count">0 palavras</div>
+<p><small>Durante o treino, copiar, recortar, colar e arrastar texto para o editor ficam bloqueados nesta página.</small></p>
+<button id="submit" disabled>Finalizar redação</button>
+<p id="result" aria-live="polite"></p>
+</section>
+</main>
+<script>
+(() => {
+  const DURATION = 25 * 60;
+  const timer = document.getElementById('timer');
+  const essay = document.getElementById('essay');
+  const start = document.getElementById('start');
+  const restart = document.getElementById('restart');
+  const submit = document.getElementById('submit');
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  const count = document.getElementById('count');
+
+  let remaining = DURATION;
+  let interval = null;
+  let running = false;
+  let expired = false;
+  let finished = false;
+  let deadline = 0;
+
+  function displayTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    timer.textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function updateCount() {
+    const words = essay.value.trim() ? essay.value.trim().split(/\s+/u).length : 0;
+    count.textContent = words + (words === 1 ? ' palavra' : ' palavras');
+  }
+
+  function lockExpired() {
+    clearInterval(interval);
+    interval = null;
+    running = false;
+    expired = true;
+    document.body.classList.add('expired');
+    essay.disabled = true;
+    start.disabled = true;
+    submit.disabled = true;
+    status.textContent = 'Tempo esgotado. A redação não pode ser finalizada. Recomece do zero para tentar novamente.';
+    result.textContent = 'Treino invalidado por tempo esgotado.';
+    displayTime(0);
+  }
+
+  function tick() {
+    remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    displayTime(remaining);
+    if (remaining <= 0) lockExpired();
+  }
+
+  function begin() {
+    clearInterval(interval);
+    remaining = DURATION;
+    running = true;
+    expired = false;
+    finished = false;
+    deadline = Date.now() + DURATION * 1000;
+    document.body.classList.remove('expired');
+    essay.value = '';
+    essay.disabled = false;
+    start.disabled = true;
+    submit.disabled = false;
+    result.textContent = '';
+    status.textContent = 'Redação em andamento. Organize sua tese, desenvolva os argumentos e conclua com uma proposta de intervenção.';
+    updateCount();
+    tick();
+    interval = setInterval(tick, 200);
+    essay.focus();
+  }
+
+  start.addEventListener('click', begin);
+  restart.addEventListener('click', () => {
+    clearInterval(interval);
+    interval = null;
+    remaining = DURATION;
+    running = false;
+    expired = false;
+    finished = false;
+    document.body.classList.remove('expired');
+    essay.value = '';
+    essay.disabled = true;
+    start.disabled = false;
+    submit.disabled = true;
+    result.textContent = '';
+    status.textContent = 'Tudo zerado. Inicie para começar uma nova tentativa de 25 minutos.';
+    displayTime(DURATION);
+    updateCount();
+  });
+
+  essay.addEventListener('input', updateCount);
+
+  submit.addEventListener('click', () => {
+    if (!running || expired || finished || remaining <= 0) return;
+    clearInterval(interval);
+    interval = null;
+    running = false;
+    finished = true;
+    essay.disabled = true;
+    submit.disabled = true;
+    status.textContent = 'Treino finalizado antes do tempo acabar.';
+    result.textContent = 'Redação finalizada neste dispositivo. Nenhum texto foi enviado a um servidor.';
+  });
+
+  for (const eventName of ['copy', 'cut', 'paste', 'drop']) {
+    essay.addEventListener(eventName, event => event.preventDefault());
+  }
+  essay.addEventListener('contextmenu', event => event.preventDefault());
+  essay.addEventListener('keydown', event => {
+    const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && ['c','x','v','insert'].includes(key)) {
+      event.preventDefault();
+    }
+    if (event.shiftKey && key === 'insert') event.preventDefault();
+  });
+
+  displayTime(DURATION);
+  updateCount();
+})();
+</script>
+</body>
+</html>
